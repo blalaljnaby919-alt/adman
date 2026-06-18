@@ -12,7 +12,6 @@
   </head>
   <body>
     <div class="admin-container">
-      <!-- القائمة الجانبية -->
       <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
           <h2>لوحة الإدارة</h2>
@@ -27,7 +26,6 @@
         </ul>
       </aside>
 
-      <!-- المحتوى الرئيسي -->
       <main class="main-content">
         <header class="top-header">
           <button id="toggle-sidebar" class="toggle-btn">
@@ -49,14 +47,12 @@
 
         <div class="tab-content active" id="orders-tab">
           <div class="orders-grid" id="orders-container">
-            <!-- سيتم تحميل الطلبات هنا عبر JavaScript -->
             <p>جاري تحميل الطلبات...</p>
           </div>
         </div>
 
         <div class="tab-content" id="accepted-orders-tab">
           <div class="orders-grid" id="accepted-orders-container">
-            <!-- سيتم تحميل الطلبات المقبولة هنا عبر JavaScript -->
             <p>جاري تحميل الطلبات...</p>
           </div>
         </div>
@@ -205,10 +201,8 @@
           </div>
 
           <div class="orders-grid" id="admin-products-container">
-            <!-- سيتم تحميل المنتجات هنا -->
-          </div>
+            </div>
 
-          <!-- نموذج تعديل المنتج -->
           <div
             class="add-product-form"
             id="edit-product-form"
@@ -435,10 +429,8 @@
           </div>
 
           <div class="orders-grid" id="admin-categories-container">
-            <!-- سيتم تحميل الفئات هنا -->
-          </div>
+            </div>
 
-          <!-- نموذج تعديل الفئة -->
           <div
             class="add-category-form"
             id="edit-category-form"
@@ -606,8 +598,7 @@
             id="admin-banners-container"
             style="display: grid; gap: 1.5rem; grid-template-columns: 1fr"
           >
-            <!-- سيتم تحميل البنرات هنا -->
-          </div>
+            </div>
         </div>
 
         <div class="tab-content" id="settings-tab">
@@ -662,7 +653,7 @@
       </main>
     </div>
 
-    <script type="module" src="../firebase-init.js"></script>
+    <script type="module" src="firebase-init.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
