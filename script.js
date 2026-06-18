@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Add Firebase loaded listener for initial sync and realtime orders
   window.addEventListener("firebaseReady", () => {
     listenForOrders();
+    syncAllDataFromFirestore(); // سحب البيانات من فايربيس عند تحميل الصفحة
   });
 });
 
@@ -115,6 +116,46 @@ function listenForOrders() {
         if (typeof loadAcceptedOrders === "function") loadAcceptedOrders();
       },
     );
+  }
+}
+
+// دالة جديدة لسحب البيانات الفعلية من فايربيس وتحديث اللوحة بها
+async function syncAllDataFromFirestore() {
+  if (window.db && window.firestore) {
+    try {
+      // سحب المنتجات
+      const productsSnap = await window.firestore.getDocs(window.firestore.collection(window.db, "products"));
+      let fetchedProducts = [];
+      productsSnap.forEach((doc) => {
+        fetchedProducts.push({ firestoreId: doc.id, ...doc.data() });
+      });
+      localStorage.setItem("products", JSON.stringify(fetchedProducts));
+
+      // سحب الفئات
+      const categoriesSnap = await window.firestore.getDocs(window.firestore.collection(window.db, "categories"));
+      let fetchedCategories = [];
+      categoriesSnap.forEach((doc) => {
+        fetchedCategories.push({ firestoreId: doc.id, ...doc.data() });
+      });
+      localStorage.setItem("categories", JSON.stringify(fetchedCategories));
+
+      // سحب البنرات
+      if (window.firestore.getDoc) {
+        const bannersDoc = await window.firestore.getDoc(window.firestore.doc(window.db, "meta", "banners"));
+        if (bannersDoc.exists && bannersDoc.exists()) {
+          localStorage.setItem("banners", JSON.stringify(bannersDoc.data().data || []));
+        }
+      }
+
+      // تحديث العرض
+      populateCategorySelects();
+      loadAdminProducts();
+      loadAdminCategories();
+      loadAdminBanners();
+      console.log("تم سحب البيانات من فايربيس بنجاح");
+    } catch (e) {
+      console.error("Error syncing data from Firestore:", e);
+    }
   }
 }
 
@@ -418,13 +459,7 @@ window.deleteAcceptedOrder = async function (id) {
 // ------------------------------------
 
 function populateCategorySelects() {
-  let categories = JSON.parse(localStorage.getItem("categories")) || [
-    { id: "fashion", name: "أزياء" },
-    { id: "electronics", name: "إلكترونيات" },
-    { id: "home", name: "منزلية" },
-    { id: "beauty", name: "جمال" },
-    { id: "books", name: "كتب" },
-  ];
+  let categories = JSON.parse(localStorage.getItem("categories")) || [];
 
   const newSelect = document.getElementById("new-product-category");
   const editSelect = document.getElementById("edit-product-category");
@@ -484,45 +519,8 @@ function initProductsTab() {
             if (saved) products = JSON.parse(saved);
           } catch (e) {}
 
-          if (!products || products.length === 0) {
-            products = [
-              {
-                id: 1,
-                name: "خلاطة كهربائي ذكي",
-                price: "25,000 د.ع",
-                image:
-                  "https://images.unsplash.com/photo-1585515320310-259814833e62?auto=format&fit=crop&w=300&q=80",
-                rating: 5,
-                category: "home",
-              },
-              {
-                id: 2,
-                name: "ساعة ذكية برو",
-                price: "78,000 د.ع",
-                image:
-                  "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=300&q=80",
-                rating: 5,
-                category: "electronics",
-              },
-              {
-                id: 3,
-                name: "نظارات شمسية مبيعية",
-                price: "10,000 د.ع",
-                image:
-                  "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=300&q=80",
-                rating: 4,
-                category: "fashion",
-              },
-              {
-                id: 4,
-                name: "طقم صيفي قطني",
-                price: "35,000 د.ع",
-                image:
-                  "https://images.unsplash.com/photo-1571513722275-4b41940f54b8?auto=format&fit=crop&w=300&q=80",
-                rating: 5,
-                category: "fashion",
-              },
-            ];
+          if (!products) {
+            products = [];
           }
 
           const newId =
@@ -595,44 +593,7 @@ function loadAdminProducts() {
           return;
         }
 
-        let products = JSON.parse(localStorage.getItem("products")) || [
-          {
-            id: 1,
-            name: "خلاطة كهربائي ذكي",
-            price: "25,000 د.ع",
-            image:
-              "https://images.unsplash.com/photo-1585515320310-259814833e62?auto=format&fit=crop&w=300&q=80",
-            rating: 5,
-            category: "home",
-          },
-          {
-            id: 2,
-            name: "ساعة ذكية برو",
-            price: "78,000 د.ع",
-            image:
-              "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=300&q=80",
-            rating: 5,
-            category: "electronics",
-          },
-          {
-            id: 3,
-            name: "نظارات شمسية مبيعية",
-            price: "10,000 د.ع",
-            image:
-              "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=300&q=80",
-            rating: 4,
-            category: "fashion",
-          },
-          {
-            id: 4,
-            name: "طقم صيفي قطني",
-            price: "35,000 د.ع",
-            image:
-              "https://images.unsplash.com/photo-1571513722275-4b41940f54b8?auto=format&fit=crop&w=300&q=80",
-            rating: 5,
-            category: "fashion",
-          },
-        ];
+        let products = JSON.parse(localStorage.getItem("products")) || [];
 
         const formattedPrice = parseInt(price).toLocaleString("en-US") + " د.ع";
         const index = products.findIndex((p) => p.id === id);
@@ -681,44 +642,7 @@ function loadAdminProducts() {
     window.editEventsAttached = true;
   }
 
-  let products = JSON.parse(localStorage.getItem("products")) || [
-    {
-      id: 1,
-      name: "خلاطة كهربائي ذكي",
-      price: "25,000 د.ع",
-      image:
-        "https://images.unsplash.com/photo-1585515320310-259814833e62?auto=format&fit=crop&w=300&q=80",
-      rating: 5,
-      category: "home",
-    },
-    {
-      id: 2,
-      name: "ساعة ذكية برو",
-      price: "78,000 د.ع",
-      image:
-        "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=300&q=80",
-      rating: 5,
-      category: "electronics",
-    },
-    {
-      id: 3,
-      name: "نظارات شمسية مبيعية",
-      price: "10,000 د.ع",
-      image:
-        "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=300&q=80",
-      rating: 4,
-      category: "fashion",
-    },
-    {
-      id: 4,
-      name: "طقم صيفي قطني",
-      price: "35,000 د.ع",
-      image:
-        "https://images.unsplash.com/photo-1571513722275-4b41940f54b8?auto=format&fit=crop&w=300&q=80",
-      rating: 5,
-      category: "fashion",
-    },
-  ];
+  let products = JSON.parse(localStorage.getItem("products")) || [];
 
   container.innerHTML = "";
 
@@ -767,13 +691,7 @@ function loadAdminProducts() {
 
 function getCategoryName(id) {
   if (id === "all") return "الكل";
-  let categories = JSON.parse(localStorage.getItem("categories")) || [
-    { id: "fashion", name: "أزياء" },
-    { id: "electronics", name: "إلكترونيات" },
-    { id: "home", name: "منزلية" },
-    { id: "beauty", name: "جمال" },
-    { id: "books", name: "كتب" },
-  ];
+  let categories = JSON.parse(localStorage.getItem("categories")) || [];
   const cat = categories.find((c) => c.id === id);
   return cat ? cat.name : id;
 }
@@ -792,44 +710,7 @@ window.deleteProduct = function (id) {
 };
 
 window.editProduct = function (id) {
-  let products = JSON.parse(localStorage.getItem("products")) || [
-    {
-      id: 1,
-      name: "خلاطة كهربائي ذكي",
-      price: "25,000 د.ع",
-      image:
-        "https://images.unsplash.com/photo-1585515320310-259814833e62?auto=format&fit=crop&w=300&q=80",
-      rating: 5,
-      category: "home",
-    },
-    {
-      id: 2,
-      name: "ساعة ذكية برو",
-      price: "78,000 د.ع",
-      image:
-        "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=300&q=80",
-      rating: 5,
-      category: "electronics",
-    },
-    {
-      id: 3,
-      name: "نظارات شمسية مبيعية",
-      price: "10,000 د.ع",
-      image:
-        "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=300&q=80",
-      rating: 4,
-      category: "fashion",
-    },
-    {
-      id: 4,
-      name: "طقم صيفي قطني",
-      price: "35,000 د.ع",
-      image:
-        "https://images.unsplash.com/photo-1571513722275-4b41940f54b8?auto=format&fit=crop&w=300&q=80",
-      rating: 5,
-      category: "fashion",
-    },
-  ];
+  let products = JSON.parse(localStorage.getItem("products")) || [];
 
   const product = products.find((p) => p.id === id);
   if (!product) return;
@@ -936,11 +817,7 @@ function initBannersTab() {
           if (saved) {
             banners = JSON.parse(saved);
           } else {
-            banners = [
-              "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80",
-              "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=800&q=80",
-              "https://images.unsplash.com/photo-1596462502278-27bf85033e5a?auto=format&fit=crop&w=800&q=80",
-            ];
+            banners = [];
           }
 
           banners.push(compressedBase64);
@@ -985,13 +862,11 @@ function loadAdminBanners() {
   if (saved) {
     try {
       banners = JSON.parse(saved);
-    } catch (e) {}
+    } catch (e) {
+      banners = [];
+    }
   } else {
-    banners = [
-      "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1596462502278-27bf85033e5a?auto=format&fit=crop&w=800&q=80",
-    ];
+    banners = [];
   }
 
   container.innerHTML = "";
@@ -1040,13 +915,11 @@ window.deleteBanner = function (index) {
     if (saved) {
       try {
         banners = JSON.parse(saved);
-      } catch (e) {}
+      } catch (e) {
+        banners = [];
+      }
     } else {
-      banners = [
-        "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1596462502278-27bf85033e5a?auto=format&fit=crop&w=800&q=80",
-      ];
+      banners = [];
     }
 
     if (index >= 0 && index < banners.length) {
@@ -1111,33 +984,7 @@ function initCategoriesTab() {
       saveCategoryBtn.disabled = true;
 
       const handleSave = (imgUrl) => {
-        let categories = JSON.parse(localStorage.getItem("categories")) || [
-          {
-            id: "fashion",
-            name: "أزياء",
-            image: "https://cdn-icons-png.flaticon.com/512/3050/3050238.png",
-          },
-          {
-            id: "electronics",
-            name: "إلكترونيات",
-            image: "https://cdn-icons-png.flaticon.com/512/1252/1252414.png",
-          },
-          {
-            id: "home",
-            name: "منزلية",
-            image: "https://cdn-icons-png.flaticon.com/512/2613/2613063.png",
-          },
-          {
-            id: "beauty",
-            name: "جمال",
-            image: "https://cdn-icons-png.flaticon.com/512/1945/1945656.png",
-          },
-          {
-            id: "books",
-            name: "كتب",
-            image: "https://cdn-icons-png.flaticon.com/512/3145/3145815.png",
-          },
-        ];
+        let categories = JSON.parse(localStorage.getItem("categories")) || [];
 
         const newCat = { id, name, image: imgUrl };
         categories.push(newCat);
@@ -1230,33 +1077,7 @@ function loadAdminCategories() {
   const container = document.getElementById("admin-categories-container");
   if (!container) return;
 
-  let categories = JSON.parse(localStorage.getItem("categories")) || [
-    {
-      id: "fashion",
-      name: "أزياء",
-      image: "https://cdn-icons-png.flaticon.com/512/3050/3050238.png",
-    },
-    {
-      id: "electronics",
-      name: "إلكترونيات",
-      image: "https://cdn-icons-png.flaticon.com/512/1252/1252414.png",
-    },
-    {
-      id: "home",
-      name: "منزلية",
-      image: "https://cdn-icons-png.flaticon.com/512/2613/2613063.png",
-    },
-    {
-      id: "beauty",
-      name: "جمال",
-      image: "https://cdn-icons-png.flaticon.com/512/1945/1945656.png",
-    },
-    {
-      id: "books",
-      name: "كتب",
-      image: "https://cdn-icons-png.flaticon.com/512/3145/3145815.png",
-    },
-  ];
+  let categories = JSON.parse(localStorage.getItem("categories")) || [];
 
   container.innerHTML = "";
 
@@ -1308,36 +1129,7 @@ function loadAdminCategories() {
 
 window.editCategory = function (id) {
   let categories = JSON.parse(localStorage.getItem("categories")) || [];
-  // If empty localStorage but we have default ones on screen, we need to populate categories from defaults:
-  if (categories.length === 0) {
-    categories = [
-      {
-        id: "fashion",
-        name: "أزياء",
-        image: "https://cdn-icons-png.flaticon.com/512/3050/3050238.png",
-      },
-      {
-        id: "electronics",
-        name: "إلكترونيات",
-        image: "https://cdn-icons-png.flaticon.com/512/1252/1252414.png",
-      },
-      {
-        id: "home",
-        name: "منزلية",
-        image: "https://cdn-icons-png.flaticon.com/512/2613/2613063.png",
-      },
-      {
-        id: "beauty",
-        name: "جمال",
-        image: "https://cdn-icons-png.flaticon.com/512/1945/1945656.png",
-      },
-      {
-        id: "books",
-        name: "كتب",
-        image: "https://cdn-icons-png.flaticon.com/512/3145/3145815.png",
-      },
-    ];
-  }
+  
   const cat = categories.find((c) => c.id === id);
   if (!cat) return;
 
@@ -1354,33 +1146,7 @@ window.editCategory = function (id) {
 };
 
 window.deleteCategory = function (id) {
-  let categories = JSON.parse(localStorage.getItem("categories")) || [
-    {
-      id: "fashion",
-      name: "أزياء",
-      image: "https://cdn-icons-png.flaticon.com/512/3050/3050238.png",
-    },
-    {
-      id: "electronics",
-      name: "إلكترونيات",
-      image: "https://cdn-icons-png.flaticon.com/512/1252/1252414.png",
-    },
-    {
-      id: "home",
-      name: "منزلية",
-      image: "https://cdn-icons-png.flaticon.com/512/2613/2613063.png",
-    },
-    {
-      id: "beauty",
-      name: "جمال",
-      image: "https://cdn-icons-png.flaticon.com/512/1945/1945656.png",
-    },
-    {
-      id: "books",
-      name: "كتب",
-      image: "https://cdn-icons-png.flaticon.com/512/3145/3145815.png",
-    },
-  ];
+  let categories = JSON.parse(localStorage.getItem("categories")) || [];
 
   const categoryToDelete = categories.find((c) => c.id === id);
   categories = categories.filter((c) => c.id !== id);
@@ -1392,7 +1158,7 @@ window.deleteCategory = function (id) {
     }
     loadAdminCategories();
   } catch (e) {
-    alert("خطأ أثناء החذف!");
+    alert("خطأ أثناء الحذف!");
   }
 };
 
